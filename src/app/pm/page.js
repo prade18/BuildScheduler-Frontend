@@ -30,7 +30,7 @@ export default function PMRegisterPage() {
       if (res.ok) {
         alert('Project Manager registered successfully!')
         //router.push('/login')
-        router.push('/login')
+        router.push('/')
       } else {
         console.warn('Registration failed:', data)
         alert(data.message || 'Registration failed')

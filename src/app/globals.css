@@ -31,3 +31,17 @@ body {
 @tailwind components;
 @tailwind utilities;
 
+select,
+option {
+  color: black !important;
+  background-color: white !important;
+}
+
+/* In your global CSS */
+select, select option {
+  color: black !important;
+  background-color: white !important;
+}
+select:focus, select option:checked {
+  background-color: #f0f0f0 !important;
+}

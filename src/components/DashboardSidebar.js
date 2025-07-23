@@ -17,6 +17,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 
+
+
 export default function DashboardSidebar() {
   const { userInfo } = useSelector((state) => state.auth)
   const [activeLinks, setActiveLinks] = useState([])
@@ -42,6 +44,7 @@ export default function DashboardSidebar() {
     ROLE_SITE_SUPERVISOR: [
       { name: 'Worker Schedule', href: '/dashboard/schedule', icon: <CalendarMonthIcon fontSize="small" /> },
       { name: 'Assign Workers', href: '/dashboard/assign-workers', icon: <PeopleAltIcon fontSize="small" /> },
+      { name: 'Assigned Projects', href: '/dashboard/assigned-projects', icon: <AssignmentIcon fontSize="small" /> },
     ],
   }
 

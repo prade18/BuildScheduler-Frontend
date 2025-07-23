@@ -26,10 +26,10 @@ export default function Navbar() {
     EQUIPMENT_MANAGER: ['Manage Equipment', 'Prevent Conflicts'],
   }
 
-  const handleLogout = () => {
-    dispatch(logout())
-    router.push('/login')
-  }
+  // const handleLogout = () => {
+  //   dispatch(logout())
+  //   router.push('/login')
+  // }
 
   // ✅ Hide navbar on /dashboard and its subroutes
   if (pathname.startsWith('/dashboard')) return null
@@ -50,12 +50,12 @@ export default function Navbar() {
               </span>
             ))}
           </div>
-          <button
+          {/* <button
             onClick={handleLogout}
             className="bg-red-500 text-white px-3 py-1.5 rounded-md hover:bg-red-600 text-sm shadow"
           >
             Logout
-          </button>
+          </button> */}
         </div>
       ) : null}
     </nav>

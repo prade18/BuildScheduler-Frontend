@@ -1,4 +1,6 @@
-// src/app/dashboard/projects/view/[projectId]/page.js
+// // // src/app/dashboard/projects/view/[projectId]/page.js
+
+
 'use client'
 
 import { useEffect, useState, useCallback } from 'react';
@@ -17,6 +19,9 @@ export default function ProjectDetailsPage() {
   const [selectedEquipmentManager, setSelectedEquipmentManager] = useState('');
   const [mainTasks, setMainTasks] = useState([]);
   const [mainTasksError, setMainTasksError] = useState('');
+  const [subtasks, setSubtasks] = useState({});
+  const [tasks, setTasks] = useState([]);
+
   const [loadingStates, setLoadingStates] = useState({
     supervisor: false,
     equipmentManager: false,
@@ -24,6 +29,34 @@ export default function ProjectDetailsPage() {
     project: true,
     users: true
   });
+
+  // New states for task editing
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  // const [editingTaskData, setEditingTaskData] = useState({
+  //   title: '',
+  //   description: '',
+  //   plannedStartDate: '',
+  //   plannedEndDate: '',
+  //   priority: '',
+  //   estimatedHours: '',
+  //   supervisorId: ''
+  // });
+  const [editingTaskData, setEditingTaskData] = useState({
+  title: '',
+  description: '',
+  plannedStartDate: '',
+  plannedEndDate: '',
+  priority: '',
+  estimatedHours: '',
+  supervisorId: ''
+});
+
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalTasks, setTotalTasks] = useState(0);
 
   // Fetch project and users
   useEffect(() => {
@@ -173,7 +206,7 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  // Fixed: Use consistent endpoint for fetching tasks
+  // Fetch main tasks with pagination
   const fetchMainTasks = useCallback(async () => {
     try {
       setLoadingStates(prev => ({...prev, mainTasks: true}));
@@ -185,10 +218,13 @@ export default function ProjectDetailsPage() {
         return;
       }
 
-      // FIXED: Use the same /pm endpoint as other requests
       const res = await axios.get(
-        `http://localhost:8080/api/pm/projects/${projectId}/main-tasks`, 
+        `http://localhost:8080/api/pm/projects/${projectId}/main-tasks`,
         {
+          params: {
+            page: currentPage,
+            size: pageSize
+          },
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -198,7 +234,9 @@ export default function ProjectDetailsPage() {
       );
       
       if (res.status === 200 && res.data?.data) {
-        setMainTasks(Array.isArray(res.data.data) ? res.data.data : []);
+        setMainTasks(Array.isArray(res.data.data.content) ? res.data.data.content : []);
+        setTotalPages(res.data.data.totalPages);
+        setTotalTasks(res.data.data.totalElements);
       } else {
         throw new Error('Invalid main tasks response');
       }
@@ -207,7 +245,7 @@ export default function ProjectDetailsPage() {
     } finally {
       setLoadingStates(prev => ({...prev, mainTasks: false}));
     }
-  }, [projectId]);
+  }, [projectId, currentPage, pageSize]);
 
   useEffect(() => {
     if (projectId && !loadingStates.project) {
@@ -244,6 +282,7 @@ export default function ProjectDetailsPage() {
       );
       
       // Refresh tasks after successful creation
+      setCurrentPage(0); // Reset to first page
       await fetchMainTasks();
       e.target.reset();
       
@@ -254,6 +293,105 @@ export default function ProjectDetailsPage() {
       alert(err.response?.data?.message || "Failed to create task");
     } finally {
       setLoadingStates(prev => ({...prev, mainTasks: false}));
+    }
+  };
+
+  // Handle edit button click
+  const handleEditTask = (task) => {
+    setEditingTaskId(task.id);
+    setEditingTaskData({
+      title: task.title,
+      description: task.description,
+      plannedStartDate: task.plannedStartDate.substring(0, 10),
+      plannedEndDate: task.plannedEndDate.substring(0, 10),
+      priority: task.priority,
+      estimatedHours: task.estimatedHours,
+      supervisorId: task.supervisor?.id || ''
+    });
+  };
+
+  // Handle update task
+  const handleUpdateTask = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    
+    try {
+      setLoadingStates(prev => ({...prev, mainTasks: true}));
+      setMainTasksError('');
+      
+      // Update task
+      await axios.put(
+        `http://localhost:8080/api/pm/projects/${projectId}/main-tasks/${editingTaskId}`,
+        {
+          title: editingTaskData.title,
+          description: editingTaskData.description,
+          plannedStartDate: editingTaskData.plannedStartDate,
+          plannedEndDate: editingTaskData.plannedEndDate,
+          priority: Number(editingTaskData.priority),
+          estimatedHours: Number(editingTaskData.estimatedHours),
+          supervisorId: Number(editingTaskData.supervisorId)
+        },
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000
+        }
+      );
+      
+      // Refresh tasks after successful update
+      await fetchMainTasks();
+      setEditingTaskId(null);
+      
+      // Show success message
+      setMainTasksError('');
+    } catch (err) {
+      handleFetchError(err, 'mainTasks');
+      alert(err.response?.data?.message || "Failed to update task");
+    } finally {
+      setLoadingStates(prev => ({...prev, mainTasks: false}));
+    }
+  };
+
+  // Handle delete task
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    
+    const token = localStorage.getItem('token');
+    
+    try {
+      setLoadingStates(prev => ({...prev, mainTasks: true}));
+      setMainTasksError('');
+      
+      await axios.delete(
+        `http://localhost:8080/api/pm/projects/${projectId}/main-tasks/${taskId}`,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000
+        }
+      );
+      
+      // Refresh tasks after successful deletion
+      await fetchMainTasks();
+    } catch (err) {
+      handleFetchError(err, 'mainTasks');
+      alert(err.response?.data?.message || "Failed to delete task");
+    } finally {
+      setLoadingStates(prev => ({...prev, mainTasks: false}));
+    }
+  };
+
+  // Handle edit form input changes
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditingTaskData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setCurrentPage(newPage);
     }
   };
 
@@ -300,6 +438,17 @@ export default function ProjectDetailsPage() {
       </div>
     );
   }
+  const handleSubtaskClick = async (task) => {
+    try {
+      const response = await axios.get(`http://localhost:8080/api/site-supervisor/main-tasks/${task.id}/subtasks`);
+      setSubtasks((prev) => ({
+        ...prev,
+        [task.id]: response.data, // store subtasks per task ID
+      }));
+    } catch (error) {
+      console.error('Failed to fetch subtasks:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -329,6 +478,8 @@ export default function ProjectDetailsPage() {
           {/* Project Details */}
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4">Project Information</h2>
                 {project ? (
@@ -487,18 +638,103 @@ export default function ProjectDetailsPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
                 </div>
               ) : mainTasks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {mainTasks.map(task => (
-                    <div key={task.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <h3 className="font-medium text-lg text-gray-900 mb-2">{task.title}</h3>
-                      <p className="text-gray-600 text-sm mb-3">{task.description}</p>
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>Start: {new Date(task.plannedStartDate).toLocaleDateString()}</span>
-                        <span>End: {new Date(task.plannedEndDate).toLocaleDateString()}</span>
+                <>
+                  
+                    <div className="flex flex-col gap-4">
+
+                    {mainTasks.map(task => (
+                      <div key={task.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow relative">
+                        {/* Visible Edit and Delete buttons */}
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          <button 
+                            onClick={() => handleEditTask(task)}
+                            className="p-1 bg-indigo-100 text-indigo-600 rounded-md hover:bg-indigo-200"
+                            title="Edit Task"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="p-1 bg-red-100 text-red-600 rounded-md hover:bg-red-200"
+                            title="Delete Task"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                        
+                        <h3 className="font-medium text-lg text-gray-900 mb-2 pr-8">{task.title}</h3>
+                        <p className="text-gray-600 text-sm mb-3">{task.description}</p>
+                        {/* <div className="flex justify-between text-sm text-gray-500">
+                          <span>Start: {new Date(task.plannedStartDate).toLocaleDateString()}</span>
+                          <span>End: {new Date(task.plannedEndDate).toLocaleDateString()}</span>
+                        </div> */}
+                        <div className="text-sm text-gray-500 space-y-1">
+                            <div>Start: {new Date(task.plannedStartDate).toLocaleDateString()}</div>
+                            <div>End: {new Date(task.plannedEndDate).toLocaleDateString()}</div>
+                        </div>
+
+                        {/* 👇 Subtask button */}
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            onClick={() => handleSubtaskClick(task)}
+                            className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                          >
+                            Subtask
+                          </button>
+                        </div>
+
                       </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination controls */}
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Showing {mainTasks.length} of {totalTasks} tasks
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 0}
+                        className={`px-3 py-1 rounded-md ${currentPage === 0 
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                          : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                      >
+                        Previous
+                      </button>
+                      
+                      <div className="flex space-x-1">
+                        {[...Array(totalPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handlePageChange(i)}
+                            className={`w-8 h-8 rounded-md ${
+                              currentPage === i
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages - 1}
+                        className={`px-3 py-1 rounded-md ${currentPage === totalPages - 1 
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                          : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                   <div className="flex">
@@ -516,143 +752,154 @@ export default function ProjectDetailsPage() {
                 </div>
               )}
 
-              {/* Create Main Task Form */}
+              {/* Create/Update Task Form */}
               <div id="taskForm" className="mt-12 bg-gray-50 p-6 rounded-lg border border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">Create New Main Task</h2>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  {editingTaskId ? 'Update Task' : 'Create New Main Task'}
+                </h2>
                 
-                <form onSubmit={handleCreateMainTask} className="space-y-4">
+                <form onSubmit={editingTaskId ? handleUpdateTask : handleCreateMainTask} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                      <input 
+                      {/* <input 
                         id="title"
                         name="title" 
                         placeholder="Task title" 
                         required 
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    {/* <div>
-                      <label htmlFor="supervisorId" className="block text-sm font-medium text-gray-700 mb-1">Supervisor</label>
+                        value={editingTaskId ? editingTaskData.title : undefined}
+                        onChange={editingTaskId ? handleEditChange : undefined}
+                      /> */}
+                      {/* <input 
+                            id="title"
+                            name="title" 
+                            placeholder="Task title" 
+                            required 
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={editingTaskData?.title ?? ""}
+                            onChange={editingTaskId ? handleEditChange : () => {}}
+                      />                */}
+                      <input 
+  id="title"
+  name="title" 
+  placeholder="Task title" 
+  required 
+  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  value={editingTaskData?.title ?? ""}
+  onChange={handleEditChange}
+/>
+
+
+                          </div>
+                    <div>
+                      <label htmlFor="supervisorId" className="block text-sm font-medium text-gray-700 mb-1">
+                        Supervisor
+                      </label>
                       <select
                         id="supervisorId"
                         name="supervisorId"
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={selectedSupervisor}
-                        onChange={(e) => setSelectedSupervisor(e.target.value)}
+                        value={editingTaskId ? editingTaskData.supervisorId : undefined}
+                        onChange={editingTaskId ? handleEditChange : undefined}
                         required
                       >
                         <option value="" disabled>Select Supervisor</option>
                         {siteSupervisors.map((sup) => (
                           <option key={sup.id} value={sup.id}>
-                            {sup.name}
+                            {sup.name || sup.username}
                           </option>
                         ))}
                       </select>
-                    </div> */}
-                    {/* <div className="relative">
-  <label htmlFor="supervisorId" className="block text-sm font-medium text-gray-700 mb-1">
-    Supervisor
-  </label>
-  <select
-    id="supervisorId"
-    name="supervisorId"
-    className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white pr-10"
-    value={selectedSupervisor}
-    onChange={(e) => setSelectedSupervisor(e.target.value)}
-    required
-  >
-    <option value="" disabled className="text-gray-400">
-      Select Supervisor
-    </option>
-    {siteSupervisors.map((sup) => (
-      <option 
-        key={sup.id} 
-        value={sup.id}
-        className="text-gray-900"
-      >
-        {sup.name} ({sup.id})
-      </option>
-    ))}
-  </select>
-  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 pt-6 text-gray-700">
-    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-    </svg>
-  </div>
-</div> */}
-<div className="relative">
-  <label htmlFor="supervisorId" className="block text-sm font-medium text-gray-700 mb-1">
-    Supervisor
-  </label>
-  <select
-    id="supervisorId"
-    name="supervisorId"
-    className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white pr-10"
-    value={selectedSupervisor}
-    onChange={(e) => setSelectedSupervisor(e.target.value)}
-    required
-  >
-    <option value="" disabled className="text-gray-400">
-      Select Supervisor
-    </option>
-    {siteSupervisors.map((sup) => (
-      <option 
-        key={sup.id} 
-        value={sup.id}
-        className="text-gray-900"
-      >
-        {sup.name || sup.username}  {/* Only show name or username */}
-      </option>
-    ))}
-  </select>
-  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 pt-6 text-gray-700">
-    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-    </svg>
-  </div>
-</div>
+                    </div>
                   </div>
                   
                   <div>
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <textarea 
-                        id="description"
-                        name="description" 
-                        placeholder="Task description" 
-                        required 
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        rows="3"
-                      />
-                    </div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea 
+                      id="description"
+                      name="description" 
+                      placeholder="Task description" 
+                      required 
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      rows="3"
+                      value={editingTaskId ? editingTaskData.description : undefined}
+                      onChange={editingTaskId ? handleEditChange : undefined}
+                    />
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="plannedStartDate" className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                      <input 
+                      {/* <input 
                         id="plannedStartDate"
                         name="plannedStartDate" 
                         type="date" 
                         required 
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                        value={editingTaskId ? editingTaskData.plannedStartDate : undefined}
+                        onChange={editingTaskId ? handleEditChange : undefined}
+                      /> */}
+                      {/* <input 
+                            id="plannedStartDate"
+                            name="plannedStartDate" 
+                            type="date" 
+                            required 
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={editingTaskId ? (editingTaskData.plannedStartDate || "") : ""}
+                            onChange={editingTaskId ? handleEditChange : () => {}}
+                        /> */}
+                        <input 
+  id="plannedStartDate"
+  name="plannedStartDate" 
+  type="date" 
+  required 
+  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  value={editingTaskData?.plannedStartDate ?? ""}
+  onChange={handleEditChange}
+/>
+
+
                     </div>
                     <div>
                       <label htmlFor="plannedEndDate" className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                      <input 
+                      {/* <input 
                         id="plannedEndDate"
                         name="plannedEndDate" 
                         type="date" 
                         required 
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                        value={editingTaskId ? editingTaskData.plannedEndDate : undefined}
+                        onChange={editingTaskId ? handleEditChange : undefined}
+                      /> */}
+                                  {/* <input 
+                                  id="plannedEndDate"
+                                  name="plannedEndDate" 
+                                  type="date" 
+                                  required 
+                                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  value={editingTaskId ? (editingTaskData.plannedEndDate || '') : ''}
+                                  onChange={editingTaskId ? handleEditChange : () => {}}
+                                /> */}
+                                <input 
+  id="plannedEndDate"
+  name="plannedEndDate" 
+  type="date" 
+  required 
+  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  value={editingTaskData?.plannedEndDate ?? ''}
+  onChange={handleEditChange}
+/>
+
+                                                      
+
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">Priority (1-10)</label>
-                      <input 
+                      {/* <input 
                         id="priority"
                         name="priority" 
                         type="number" 
@@ -661,36 +908,119 @@ export default function ProjectDetailsPage() {
                         placeholder="Priority" 
                         required 
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                        value={editingTaskId ? editingTaskData.priority : undefined}
+                        onChange={editingTaskId ? handleEditChange : undefined}
+                      /> */}
+                      <input 
+                            id="priority"
+                            name="priority" 
+                            type="number" 
+                            min="1"                           
+                            max="10" 
+                            placeholder="Priority" 
+                            required 
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={editingTaskData.priority}
+                            onChange={handleEditChange}
+                        />
+
                     </div>
                     <div>
                       <label htmlFor="estimatedHours" className="block text-sm font-medium text-gray-700 mb-1">Estimated Hours</label>
-                      <input 
+                      {/* <input 
                         id="estimatedHours"
                         name="estimatedHours" 
                         type="number" 
                         placeholder="Estimated Hours" 
                         required 
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                        value={editingTaskId ? editingTaskData.estimatedHours : undefined}
+                        onChange={editingTaskId ? handleEditChange : undefined}
+                      /> */}                           
+                        <input 
+                            id="estimatedHours"
+                            name="estimatedHours" 
+                            type="number" 
+                            placeholder="Estimated Hours" 
+                            required 
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={editingTaskData.estimatedHours}
+                            onChange={handleEditChange}
+                        />
+
                     </div>
                   </div>
                   
-                  <div className="pt-4">
+                  <div className="pt-4 flex space-x-3">
                     <button 
                       type="submit" 
                       disabled={loadingStates.mainTasks}
-                      className="w-full md:w-auto px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                     >
-                      {loadingStates.mainTasks ? 'Creating Task...' : 'Create Main Task'}
+                      {loadingStates.mainTasks 
+                        ? (editingTaskId ? 'Updating Task...' : 'Creating Task...') 
+                        : (editingTaskId ? 'Update Task' : 'Create Main Task')}
                     </button>
+                    
+                    {editingTaskId && (
+                      <button 
+                        type="button"
+                        onClick={() => setEditingTaskId(null)}
+                        className="px-6 py-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 </form>
               </div>
             </div>
           </div>
         </div>
-      </div>
+        <div>
+      {tasks.map((task) => (
+        <div key={task.id} className="bg-white rounded-lg shadow-md p-4 mb-4 relative">
+          <h3 className="text-lg font-semibold">{task.title}</h3>
+          <p className="text-gray-600">{task.description}</p>
+          <div className="text-sm text-gray-500 space-y-1 mt-2">
+            <div>Start: {new Date(task.plannedStartDate).toLocaleDateString()}</div>
+            <div>End: {new Date(task.plannedEndDate).toLocaleDateString()}</div>
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() => handleSubtaskClick(task)}
+              className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+            >
+              Subtask
+            </button>
+          </div>
+
+          {subtasks[task.id] && (
+            <div className="mt-3">
+              <h4 className="font-medium text-sm">Subtasks:</h4>
+              <ul className="list-disc list-inside text-sm text-gray-700">
+                {subtasks[task.id].map((subtask) => (
+                  <li key={subtask.id}>{subtask.title}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
+      </div>
+      
+    </div>
+    
   );
 }
+
+
+
+
+
+
+
+                          
+

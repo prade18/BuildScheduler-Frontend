@@ -2,80 +2,99 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 export default function AssignedProjectsPage() {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [assignedProjects, setAssignedProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchProjects = async (accessToken) => {
+    return axios.get('http://localhost:8080/api/site-supervisor/projects', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  };
+
+  const refreshAccessToken = async (refreshToken) => {
+    const response = await axios.post('http://localhost:8080/api/auth/refresh-token', {
+      refreshToken: refreshToken,
+    });
+    return response.data.data.accessToken;
+  };
 
   useEffect(() => {
-    const fetchProjects = async () => {
+    const loadProjects = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:8080/api/site-supervisor/projects', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        let accessToken = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch projects');
+        try {
+          const response = await fetchProjects(accessToken);
+          setAssignedProjects(response.data.data || []);
+        } catch (err) {
+          if (err.response && err.response.status === 401 && refreshToken) {
+            // Access token expired, try to refresh
+            try {
+              const newAccessToken = await refreshAccessToken(refreshToken);
+              localStorage.setItem('accessToken', newAccessToken);
+
+              const retryResponse = await fetchProjects(newAccessToken);
+              setAssignedProjects(retryResponse.data.data || []);
+            } catch (refreshErr) {
+              console.error('Token refresh failed:', refreshErr);
+              setError('Session expired. Please login again.');
+              router.push('/login');
+            }
+          } else {
+            throw err;
+          }
         }
-
-        const data = await response.json();
-        setProjects(data.data || []);
-      } catch (error) {
-        console.error('Error fetching projects:', error);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to load assigned projects.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProjects();
-  }, []);
+    loadProjects();
+  }, [router]);
 
   const handleViewDetails = (projectId) => {
-    router.push(`/dashboard/project-details/${projectId}`);
+    router.push(`/dashboard/assigned-projects/${projectId}`);
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('en-IN');
-  };
+  if (loading) return <div className="p-4">Loading assigned projects...</div>;
+  if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800">Assigned Projects</h1>
+    <div className="p-6 bg-white rounded shadow">
+      <h1 className="text-2xl font-bold text-indigo-600 mb-4">Assigned Projects</h1>
 
-      {loading ? (
-        <p className="text-gray-500">Loading projects...</p>
-      ) : Array.isArray(projects) && projects.length > 0 ? (
-        projects.map((project) => (
-          <div
-            key={project.id}
-            className="bg-white shadow-md rounded-xl p-6 mb-4 flex flex-col md:flex-row justify-between md:items-center hover:shadow-lg transition-shadow"
-          >
-            <div className="space-y-2 text-sm text-gray-700">
-              <p><strong>Project Name:</strong> {project.projectName || project.name || 'Unnamed Project'}</p>
-              <p><strong>Location:</strong> {project.location || 'N/A'}</p>
-              <p><strong>Start Date:</strong> {formatDate(project.startDate)}</p>
-              <p><strong>End Date:</strong> {formatDate(project.endDate)}</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <button
-                onClick={() => handleViewDetails(project.id)}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-              >
-                View Details
-              </button>
-            </div>
-          </div>
-        ))
-      ) : (
+      {assignedProjects.length === 0 ? (
         <p className="text-gray-500">No assigned projects found.</p>
+      ) : (
+        <ul className="space-y-4">
+          {assignedProjects.map((project) => (
+            <li key={project.id} className="border p-4 rounded shadow-sm">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p><strong>Name:</strong> {project.projectName}</p>
+                  <p><strong>Location:</strong> {project.location}</p>
+                </div>
+                <button
+                  className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
+                  onClick={() => handleViewDetails(project.id)}
+                >
+                  View Details
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

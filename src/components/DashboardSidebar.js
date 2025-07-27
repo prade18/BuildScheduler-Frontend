@@ -16,6 +16,8 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+
 
 
 
@@ -38,9 +40,11 @@ export default function DashboardSidebar() {
       { name: 'Assign Roles', href: '/dashboard/assign-roles', icon: <PeopleAltIcon fontSize="small" /> },
     ],
     ROLE_EQUIPMENT_MANAGER: [
-      { name: 'Manage Equipment', href: '/dashboard/equipment', icon: <HandymanIcon fontSize="small" /> },
+      { name: 'Equipment', href: '/dashboard/equipment', icon: <HandymanIcon fontSize="small" /> },
       { name: 'Schedule Maintenance', href: '/dashboard/maintenance', icon: <CalendarMonthIcon fontSize="small" /> },
-    ],
+      { name: 'Assigned Projects', href: '/dashboard/equipment-assigned-projects', icon: <AssignmentIcon fontSize="small" /> },
+      { name: 'Add Equipment', href: '/dashboard/equipment/add', icon: <AddCircleIcon fontSize="small" /> },
+      ],
     ROLE_SITE_SUPERVISOR: [
       { name: 'Worker Schedule', href: '/dashboard/schedule', icon: <CalendarMonthIcon fontSize="small" /> },
       { name: 'Assign Workers', href: '/dashboard/assign-workers', icon: <PeopleAltIcon fontSize="small" /> },

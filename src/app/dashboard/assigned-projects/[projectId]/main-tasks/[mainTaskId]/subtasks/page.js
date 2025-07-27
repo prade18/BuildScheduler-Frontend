@@ -266,12 +266,12 @@ export default function SubtasksPage() {
 
   const fetchSubtasks = async () => {
     try {
-      const accessToken = localStorage.getItem("accessToken");
+      const accessToken = localStorage.getItem("token");
       const response = await axios.get(
         `http://localhost:8080/api/site-supervisor/main-tasks/${mainTaskId}/subtasks`,
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`
+            Authorization: `Bearer ${token}`
           }
         }
       );
@@ -293,7 +293,7 @@ export default function SubtasksPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = localStorage.getItem("token");
 
     const payload = {
       title: formData.title,
@@ -315,7 +315,7 @@ export default function SubtasksPage() {
           payload,
           {
             headers: {
-              Authorization: `Bearer ${accessToken}`
+              Authorization: `Bearer ${token}`
             }
           }
         );
@@ -324,9 +324,7 @@ export default function SubtasksPage() {
           `http://localhost:8080/api/site-supervisor/main-tasks/${mainTaskId}/subtasks`,
           payload,
           {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
-            }
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
       }
@@ -370,13 +368,13 @@ export default function SubtasksPage() {
   };
 
   const handleDelete = async (subtaskId) => {
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = localStorage.getItem("token");
     try {
       await axios.delete(
         `http://localhost:8080/api/site-supervisor/subtasks/${subtaskId}`,
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`
+            Authorization: `Bearer ${token}`
           }
         }
       );

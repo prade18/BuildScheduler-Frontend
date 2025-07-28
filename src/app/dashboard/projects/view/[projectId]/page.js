@@ -1383,6 +1383,7 @@ export default function ProjectDetails() {
       router.push(`/dashboard/projects/view/${projectId}/tasks/${taskId}/subtasks`);
   };
 
+
   if (loading) return <div className="flex justify-center items-center h-screen bg-gray-100"><p className="text-xl font-semibold text-indigo-600 animate-pulse">Loading project details...</p></div>;
   if (!project) return <div className="flex justify-center items-center h-screen bg-gray-100"><p className="text-xl font-semibold text-red-500">Project not found or an error occurred.</p></div>;
 

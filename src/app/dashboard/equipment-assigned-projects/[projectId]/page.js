@@ -1,4 +1,4 @@
-// app/dashboard/equipment-assigned-projects/[projectId]/page.js
+//app/dashboard/equipment-assigned-projects/[projectId]/page.js
 'use client'; // This is a Client Component as it uses useState, useEffect, useParams, useRouter
 
 import { useState, useEffect } from 'react';

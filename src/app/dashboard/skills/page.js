@@ -16,7 +16,8 @@ export default function SkillsPage() {
     const fetchSkills = async () => {
       setLoading(true)
       try {
-        const res = await fetch('http://localhost:8080/api/worker/profile/skills', {
+        const res = await fetch(
+          'http://localhost:8080/api/worker/profile/my-skills', {
           headers: {
             Authorization: `Bearer ${token}`
           }

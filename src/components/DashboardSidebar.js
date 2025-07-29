@@ -28,7 +28,7 @@ export default function DashboardSidebar() {
       { name: 'My Tasks', href: '/dashboard/tasks', icon: <AssignmentIcon fontSize="small" /> },
       { name: 'My Schedule', href: '/dashboard/schedule', icon: <CalendarMonthIcon fontSize="small" /> },
       { name: 'My Certificates', href: '/dashboard/certificates', icon: <CheckCircleIcon fontSize="small" /> },
-      { name: 'Assigned Projects', href: '/dashboard/assignedprojects', icon: <CheckCircleIcon fontSize="small" /> },
+      { name: 'Assigned Projects', href: '/dashboard/assignedprojectsforworker', icon: <CheckCircleIcon fontSize="small" /> },
       { name: 'Notification', href: '/dashboard/notifications', icon: <CheckCircleIcon fontSize="small" /> },
     ],
     ROLE_PROJECT_MANAGER: [
@@ -45,9 +45,8 @@ export default function DashboardSidebar() {
       { name: 'Notification', href: '/dashboard/notifications', icon: <CheckCircleIcon fontSize="small" /> },
     ],
     ROLE_SITE_SUPERVISOR: [
-      { name: 'Worker Schedule', href: '/dashboard/schedule', icon: <CalendarMonthIcon fontSize="small" /> },
-      { name: 'Assign Workers', href: '/dashboard/assign-workers', icon: <PeopleAltIcon fontSize="small" /> },
-      { name: 'Assigned Projects', href: '/dashboard/assigned-projects', icon: <AssignmentIcon fontSize="small" /> },
+      { name: 'Assigned Projects', href: '/dashboard/assigned-projects-sitesup', icon: <AssignmentIcon fontSize="small" /> },
+      { name: 'Notification', href: '/dashboard/notifications', icon: <CheckCircleIcon fontSize="small" /> },
     ],
   }
 

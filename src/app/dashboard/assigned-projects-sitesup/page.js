@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Import Link for navigation  cardd
 
 export default function AssignedProjects() {
   const router = useRouter();
@@ -46,8 +47,20 @@ export default function AssignedProjects() {
     fetchAssignedProjects();
   }, [router]);
 
+  // Updated to navigate to the new path
   const handleViewProjectDetails = (projectId) => {
-    router.push(`/dashboard/assigned-projects/${projectId}`);
+    router.push(`/dashboard/assigned-projects-sitesup/${projectId}`);
+  };
+
+  // Helper function to get priority text (moved here for direct use)
+  const getPriorityText = (priority) => {
+    switch (priority) {
+      case 1: return 'Low';
+      case 2: return 'Medium';
+      case 3: return 'High';
+      case 4: return 'Critical';
+      default: return 'N/A';
+    }
   };
 
   if (loading) {
@@ -94,10 +107,9 @@ export default function AssignedProjects() {
             {/* List Items */}
             <div className="divide-y divide-gray-200">
               {projects.map((project) => (
-                <div 
-                  key={project.id} 
-                  onClick={() => handleViewProjectDetails(project.id)}
-                  className="block px-6 py-4 hover:bg-indigo-50 transition-colors duration-200 cursor-pointer"
+                <div
+                  key={project.id}
+                  className="block px-6 py-4 hover:bg-indigo-50 transition-colors duration-200" // Removed onClick from here
                 >
                   <div className="md:grid md:grid-cols-6 lg:grid-cols-7 gap-4 items-center">
                     {/* Project Title & Description (Mobile: Stacked, Desktop: Col 1-2) */}
@@ -126,7 +138,7 @@ export default function AssignedProjects() {
 
                     {/* Priority (Col 4) */}
                     <div className="mb-2 md:mb-0">
-                      <DetailItem label="Priority" value={project.priority} hideLabelOnDesktop={true} />
+                      <DetailItem label="Priority" value={getPriorityText(project.priority)} hideLabelOnDesktop={true} />
                     </div>
 
                     {/* Project Manager (Col 5) */}
@@ -138,13 +150,13 @@ export default function AssignedProjects() {
                     <div className="mb-2 md:mb-0">
                         <DetailItem label="Planned Dates" value={`${project.startDate} to ${project.endDate}`} hideLabelOnDesktop={true} />
                     </div>
-                    
+
                     {/* Completion Percentage (Col 7 - Hidden on smaller screens) */}
                     <div className="col-span-full md:col-span-1 lg:block mb-2 md:mb-0">
                         <h4 className="font-semibold text-gray-600 text-sm md:hidden">Completion:</h4> {/* Label for mobile */}
                         <div className="w-full bg-gray-200 rounded-full h-2 relative">
-                            <div 
-                                className="bg-indigo-500 h-2 rounded-full flex items-center justify-end pr-1 text-white text-xs font-bold transition-all duration-500 ease-out" 
+                            <div
+                                className="bg-indigo-500 h-2 rounded-full flex items-center justify-end pr-1 text-white text-xs font-bold transition-all duration-500 ease-out"
                                 style={{ width: `${project.completionPercentage}%` }}
                             >
                                 {project.completionPercentage > 0 ? `${Math.round(project.completionPercentage)}%` : ''}
@@ -171,6 +183,17 @@ export default function AssignedProjects() {
                     {project.equipmentManager && (
                       <DetailItem label="Eq. Manager" value={project.equipmentManager.username} />
                     )}
+                  </div>
+
+                  {/* View Details Button */}
+                  <div className="mt-4 flex justify-end">
+                    <Link
+                      href={`/dashboard/assigned-projects-sitesup/${project.id}`}
+                      passHref
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    >
+                      View Details
+                    </Link>
                   </div>
                 </div>
               ))}

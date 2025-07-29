@@ -14,7 +14,7 @@ import {
   isSameDay,
 } from 'date-fns'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon } from '@heroicons/react/24/outline' // Importing an icon for closing the modal
+import { XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function SchedulePage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -22,15 +22,12 @@ export default function SchedulePage() {
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [isOpen, setIsOpen] = useState(false)
-  const [slots, setSlots] = useState([]) // Stores available slots from the API
+  const [slots, setSlots] = useState([]) // Stores all availability slots
   const [errorMessage, setErrorMessage] = useState('')
-  const [loading, setLoading] = useState(false) // New loading state for fetching slots
+  const [loading, setLoading] = useState(false)
 
-  // Helper function to get token (can be replaced with Redux/Context if available)
-  const getToken = () => {
-    // Assuming token is stored in localStorage
-    return localStorage.getItem('token')
-  }
+  // Helper to get auth token
+  const getToken = () => localStorage.getItem('token')
 
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
@@ -45,47 +42,43 @@ export default function SchedulePage() {
 
   const closeModal = () => {
     setIsOpen(false)
-    setSelectedDate(null) // Clear selected date on close
+    setSelectedDate(null)
   }
 
-  // Fetching all availability slots for the worker
+  // Fetch all availability slots
   const fetchSlots = async () => {
-    setLoading(true) // Start loading
+    setLoading(true)
     try {
       const token = getToken()
       if (!token) {
-        console.error('No authentication token found.')
         setErrorMessage('You are not authenticated. Please log in.')
-        setLoading(false)
         return
       }
 
       const res = await fetch(`http://localhost:8080/api/worker/profile/availability/all`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
-        credentials: 'include' // Important for sending cookies if your backend uses them
+        credentials: 'include',
       })
 
-      const data = await res.json() // Directly parse as JSON, check for errors
+      const data = await res.json()
 
       if (res.ok && data.success) {
         setSlots(data.data || [])
       } else {
-        const message = data?.message || res.statusText || 'Failed to fetch slots: Unknown error'
-        setErrorMessage(message)
-        console.warn('Failed to fetch slots:', message)
+        setErrorMessage(data.message || 'Failed to fetch availability.')
       }
     } catch (err) {
-      setErrorMessage(err.message || 'Error fetching slots.')
-      console.error('Error fetching slots:', err)
+      setErrorMessage(err.message || 'Error fetching availability.')
+      console.error('Fetch error:', err)
     } finally {
-      setLoading(false) // End loading
+      setLoading(false)
     }
   }
 
-  // Function to save a new availability slot
+  // Save a new availability slot
   const saveSlot = async () => {
     if (!startTime || !endTime) {
       setErrorMessage('Please select both start and end times.')
@@ -95,7 +88,7 @@ export default function SchedulePage() {
     const payload = {
       date: format(selectedDate, 'yyyy-MM-dd'),
       startTime,
-      endTime
+      endTime,
     }
 
     try {
@@ -112,85 +105,84 @@ export default function SchedulePage() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
-        credentials: 'include'
+        credentials: 'include',
       })
 
-      const data = await res.json() // Directly parse as JSON
+      const data = await res.json()
 
       if (res.ok && data.success) {
-        fetchSlots() // Refresh slots after successful save
-        closeModal() // Close modal on success
+        fetchSlots() // Refresh slots
+        closeModal()
       } else {
-        const message = data?.message || res.statusText || 'Failed to add slot: Unknown error'
         if (res.status === 409) {
           setErrorMessage('This slot overlaps with an existing availability.')
         } else {
-          setErrorMessage(message)
+          setErrorMessage(data.message || 'Failed to add slot.')
         }
       }
     } catch (err) {
       setErrorMessage(err.message || 'Something went wrong while saving.')
-      console.error('Error saving slot:', err)
+      console.error('Save error:', err)
     }
   }
 
-  // Function to delete an availability slot by its ID
+  // Delete a specific slot by ID
   const deleteSlot = async (slotId) => {
-    if (!confirm('Are you sure you want to delete this availability slot?')) {
-      return
-    }
+    if (!confirm('Are you sure you want to delete this availability slot?')) return
+
     try {
       const token = getToken()
-      if (!token) {
-        console.error('No authentication token found for deletion.')
-        return
-      }
+      if (!token) return
 
-      // Correct API call with slotId in the path
       const res = await fetch(`http://localhost:8080/api/worker/profile/availability/${slotId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-        credentials: 'include'
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
       })
 
       if (res.ok) {
-        fetchSlots() // Refresh slots after successful deletion
+        fetchSlots() // Refresh after deletion
       } else {
-        const data = await res.json(); // Try to get error message from response body
-        console.warn('Failed to delete slot:', data?.message || res.statusText);
-        alert(data?.message || 'Failed to delete slot.');
+        const data = await res.json()
+        alert(data.message || 'Failed to delete slot.')
       }
     } catch (err) {
-      console.error('Error deleting slot:', err);
-      alert('An error occurred while deleting the slot.');
+      console.error('Delete error:', err)
+      alert('An error occurred while deleting the slot.')
     }
   }
 
-  // --- Calendar Rendering Logic ---
-  const renderHeader = () => {
-    return (
-      <div className="flex justify-between items-center mb-6 px-4 py-2 bg-white rounded-lg shadow-md">
-        <button onClick={prevMonth} className="p-2 text-gray-700 hover:bg-gray-100 rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h2 className="text-3xl font-bold text-gray-800">
-          {format(currentMonth, 'MMMM yyyy')}
-        </h2>
-        <button onClick={nextMonth} className="p-2 text-gray-700 hover:bg-gray-100 rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    )
-  }
+  // Group slots by date for easier access
+  const slotsByDate = slots.reduce((acc, slot) => {
+    const dateKey = slot.date
+    if (!acc[dateKey]) acc[dateKey] = []
+    acc[dateKey].push(slot)
+    return acc
+  }, {})
+
+  // --- Calendar Rendering ---
+  const renderHeader = () => (
+    <div className="flex justify-between items-center mb-6 px-4 py-2 bg-white rounded-lg shadow-md">
+      <button onClick={prevMonth} className="p-2 text-gray-700 hover:bg-gray-100 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <h2 className="text-3xl font-bold text-gray-800">{format(currentMonth, 'MMMM yyyy')}</h2>
+      <button onClick={nextMonth} className="p-2 text-gray-700 hover:bg-gray-100 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  )
 
   const renderDays = () => {
     const days = []
-    const dateFormat = 'EEE' // Mon, Tue, Wed
-    let startDate = startOfWeek(currentMonth, { weekStartsOn: 1 }) // Monday as start of week
+    const dateFormat = 'EEE'
+    let startDate = startOfWeek(currentMonth, { weekStartsOn: 1 })
 
     for (let i = 0; i < 7; i++) {
       days.push(
@@ -211,69 +203,79 @@ export default function SchedulePage() {
     const rows = []
     let days = []
     let day = startDate
-    let formattedDate = ''
 
     while (day <= endDate) {
-      for (let i = 0; i < 7; i++) {
-        formattedDate = format(day, 'd')
-        const dateStr = format(day, 'yyyy-MM-dd')
-        const slotForThisDay = slots.find((s) => s.date === dateStr)
-        const dayToRender = day // Capture day for closure
+      const formattedDate = format(day, 'd')
+      const dateStr = format(day, 'yyyy-MM-dd')
+      const dailySlots = slotsByDate[dateStr] || []
 
-        days.push(
-          <div
-            key={dayToRender.toISOString()}
-            className={`
-              p-2 h-32 flex flex-col cursor-pointer transition-colors duration-200
-              ${!isSameMonth(dayToRender, currentMonth) ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-900'}
-              ${isSameDay(dayToRender, new Date()) ? 'border-2 border-blue-500 rounded-lg' : 'border border-gray-200'}
-              hover:bg-blue-50
-            `}
-            onClick={() => openModal(dayToRender)}
-          >
-            <span className="font-bold text-lg text-right">{formattedDate}</span>
-            <div className="flex-grow flex items-center justify-center p-1 overflow-hidden">
-              {loading ? (
-                <span className="text-gray-400 text-sm">Loading...</span>
-              ) : slotForThisDay ? (
-                <div className="text-center w-full">
-                  <div className="text-blue-700 font-semibold text-sm">
-                    {slotForThisDay.startTime} - {slotForThisDay.endTime}
+      const dayToRender = day
+      days.push(
+        <div
+          key={dayToRender.toISOString()}
+          className={`
+            p-2 h-36 flex flex-col cursor-pointer transition-colors duration-200
+            ${!isSameMonth(dayToRender, currentMonth) ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-900'}
+            ${isSameDay(dayToRender, new Date()) ? 'border-2 border-blue-500 rounded-lg' : 'border border-gray-200'}
+            hover:bg-blue-50
+          `}
+          onClick={() => openModal(dayToRender)}
+        >
+          <span className="font-bold text-lg">{formattedDate}</span>
+
+          <div className="flex-grow flex flex-col justify-center gap-1 overflow-y-auto px-1">
+            {loading ? (
+              <span className="text-gray-400 text-xs">Loading...</span>
+            ) : dailySlots.length > 0 ? (
+              dailySlots.map((slot) => (
+                <div
+                  key={slot.id}
+                  className="bg-blue-50 border border-blue-200 rounded-md p-1 text-xs text-center relative"
+                >
+                  <div className="text-blue-800 font-semibold">
+                    {slot.startTime} - {slot.endTime}
                   </div>
-                  <div className="text-green-600 text-xs mt-1">Available</div>
-                  {/* Styled Delete Button */}
                   <button
                     onClick={(e) => {
-                      e.stopPropagation() // Prevent opening modal when deleting
-                      deleteSlot(slotForThisDay.id) // Use slot ID for deletion
+                      e.stopPropagation()
+                      deleteSlot(slot.id)
                     }}
-                    className="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600 transition"
                   >
-                    Delete
+                    ×
                   </button>
                 </div>
-              ) : (
-                <div className="text-gray-400 text-sm text-center">Click to set</div>
-              )}
-            </div>
+              ))
+            ) : (
+              <div className="text-gray-400 text-xs text-center">Click to set</div>
+            )}
           </div>
-        )
-        day = addDays(day, 1)
-      }
-      rows.push(
-        <div className="grid grid-cols-7 w-full" key={day.toISOString()}>
-          {days}
         </div>
       )
-      days = []
+
+      day = addDays(day, 1)
+
+      // Push row every 7 days
+      if (days.length === 7) {
+        rows.push(
+          <div className="grid grid-cols-7 w-full" key={day.toISOString()}>
+            {days}
+          </div>
+        )
+        days = []
+      }
     }
-    return <div className="w-full border-t border-l border-r border-gray-200 rounded-lg overflow-hidden shadow-xl">{rows}</div>
+
+    return (
+      <div className="w-full border-t border-l border-r border-gray-200 rounded-lg overflow-hidden shadow-xl">
+        {rows}
+      </div>
+    )
   }
 
-  // Fetch slots on component mount and when currentMonth changes
   useEffect(() => {
     fetchSlots()
-  }, [currentMonth]) // Dependency on currentMonth to re-fetch when month changes
+  }, [currentMonth])
 
   return (
     <div className="p-6 w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-sans">
@@ -289,9 +291,9 @@ export default function SchedulePage() {
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
-            leave="ease-in duration-200"
             enterFrom="opacity-0"
             enterTo="opacity-100"
+            leave="ease-in duration-200"
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
@@ -315,15 +317,22 @@ export default function SchedulePage() {
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
+
                 <Dialog.Title className="text-2xl font-bold text-gray-800 mb-5">
                   Set Availability for: {selectedDate && format(selectedDate, 'PPP')}
                 </Dialog.Title>
 
-                {errorMessage && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm">{errorMessage}</div>}
+                {errorMessage && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+                    {errorMessage}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                    <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Time
+                    </label>
                     <input
                       type="time"
                       id="startTime"
@@ -332,9 +341,10 @@ export default function SchedulePage() {
                       className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
-
                   <div>
-                    <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                    <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
+                      End Time
+                    </label>
                     <input
                       type="time"
                       id="endTime"
@@ -352,7 +362,6 @@ export default function SchedulePage() {
                   >
                     Cancel
                   </button>
-                  {/* Styled Save Button */}
                   <button
                     onClick={saveSlot}
                     className="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-medium"

@@ -1,101 +1,3 @@
-// 'use client';
-
-// import { useEffect, useState } from 'react';
-// import axios from 'axios';
-
-// const EquipmentAssignedProjectsPage = () => {
-//   const [projects, setProjects] = useState([]);
-
-//   useEffect(() => {
-//     const fetchProjects = async () => {
-//       try {
-//         const accessToken = localStorage.getItem('accessToken');
-//         const token = localStorage.getItem('token');
-
-//         const response = await axios.get('http://localhost:8080/api/equipment-manager/projects', {
-//           headers: {
-//             Authorization: `Bearer ${accessToken || token}`,
-//           },
-//         });
-
-//         if (response.data.success) {
-//           setProjects(response.data.data);
-//         }
-//       } catch (error) {
-//         console.error('Error fetching equipment manager projects:', error);
-//       }
-//     };
-
-//     fetchProjects();
-//   }, []);
-
-//   return (
-//     <div className="p-6">
-//       <h1 className="text-2xl font-bold mb-4">Assigned Projects</h1>
-
-//       <div className="overflow-x-auto">
-//         <table className="min-w-full bg-white border border-gray-200">
-//           <thead>
-//             <tr className="bg-gray-100 text-left text-gray-600 text-sm uppercase">
-//               <th className="py-3 px-6">Project Title</th>
-//               <th className="py-3 px-6">Status</th>
-//               <th className="py-3 px-6">Priority</th>
-//               <th className="py-3 px-6">Manager</th>
-//               <th className="py-3 px-6">Planned Dates</th>
-//               <th className="py-3 px-6">Completion</th>
-//             </tr>
-//           </thead>
-//           <tbody className="text-gray-700 text-sm">
-//             {projects.map((project) => (
-//               <tr key={project.id} className="border-t">
-//                 <td className="py-4 px-6">
-//                   <div className="font-semibold">{project.title}</div>
-//                   <div className="text-gray-500">{project.description}</div>
-//                 </td>
-//                 <td className="py-4 px-6">
-//                   <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold">
-//                     {project.status}
-//                   </span>
-//                 </td>
-//                 <td className="py-4 px-6">{project.priority}</td>
-//                 <td className="py-4 px-6">{project.managerName || 'Project Manager'}</td>
-//                 <td className="py-4 px-6">
-//   {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'} to <br />
-// {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}
-
-// </td>
-
-//                 <td className="py-4 px-6">
-//                   <div className="flex items-center gap-2">
-//                     <span className="text-sm font-medium text-purple-700">{project.completion || 0}%</span>
-//                     <div className="w-32 bg-gray-200 rounded-full h-2">
-//                       <div
-//                         className="bg-purple-600 h-2 rounded-full"
-//                         style={{ width: `${project.completion || 0}%` }}
-//                       ></div>
-//                     </div>
-//                   </div>
-//                 </td>
-//               </tr>
-//             ))}
-//             {projects.length === 0 && (
-//               <tr>
-//                 <td colSpan="6" className="text-center py-6 text-gray-500">
-//                   No assigned projects found.
-//                 </td>
-//               </tr>
-//             )}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default EquipmentAssignedProjectsPage;
-
-
-// app/dashboard/equipment-assigned-projects/page.js
 'use client'; // This is crucial for using hooks like useState, useEffect, useRouter
 
 import { useEffect, useState } from 'react';
@@ -211,7 +113,7 @@ const EquipmentAssignedProjectsPage = () => {
                   </span>
                 </td>
                 <td className="py-4 px-6">{project.priority}</td>
-                <td className="py-4 px-6">{project.managerName || 'N/A'}</td>
+                <td className="py-4 px-6">{project.projectManagerName || 'N/A'}</td>
                 <td className="py-4 px-6 text-xs">
                   {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'} to <br />
                   {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}

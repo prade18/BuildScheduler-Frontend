@@ -14,9 +14,9 @@ import HandymanIcon from '@mui/icons-material/Handyman'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
-import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import NotificationsIcon from '@mui/icons-material/Notifications'
 import AddCircleIcon from '@mui/icons-material/AddCircle'
+import MiscellaneousServicesIcon from '@mui/icons-material/MiscellaneousServices'
 
 export default function DashboardSidebar() {
   const { userInfo } = useSelector((state) => state.auth)
@@ -28,25 +28,26 @@ export default function DashboardSidebar() {
       { name: 'My Tasks', href: '/dashboard/tasks', icon: <AssignmentIcon fontSize="small" /> },
       { name: 'My Schedule', href: '/dashboard/schedule', icon: <CalendarMonthIcon fontSize="small" /> },
       { name: 'My Certificates', href: '/dashboard/certificates', icon: <CheckCircleIcon fontSize="small" /> },
-      { name: 'Assigned Projects', href: '/dashboard/assignedprojectsforworker', icon: <CheckCircleIcon fontSize="small" /> },
-      { name: 'Notification', href: '/dashboard/notifications', icon: <CheckCircleIcon fontSize="small" /> },
+      { name: 'Assigned Projects', href: '/dashboard/assignedprojectsforworker', icon: <AssignmentIcon fontSize="small" /> },
+      { name: 'Notifications', href: '/dashboard/notifications', icon: <NotificationsIcon fontSize="small" /> },
     ],
     ROLE_PROJECT_MANAGER: [
       { name: 'Create Project', href: '/dashboard/projects/create', icon: <FolderSpecialIcon fontSize="small" /> },
       { name: 'View Projects', href: '/dashboard/projects/view', icon: <FolderOpenIcon fontSize="small" /> },
       { name: 'Assign Roles', href: '/dashboard/assign-roles', icon: <PeopleAltIcon fontSize="small" /> },
-      { name: 'Notification', href: '/dashboard/notifications', icon: <CheckCircleIcon fontSize="small" /> },
+      { name: 'Notifications', href: '/dashboard/notifications', icon: <NotificationsIcon fontSize="small" /> },
     ],
     ROLE_EQUIPMENT_MANAGER: [
-      { name: 'Equipment', href: '/dashboard/equipment', icon: <HandymanIcon fontSize="small" /> },
-      { name: 'Schedule Maintenance', href: '/dashboard/maintenance', icon: <CalendarMonthIcon fontSize="small" /> },
       { name: 'Assigned Projects', href: '/dashboard/equipment-assigned-projects', icon: <AssignmentIcon fontSize="small" /> },
+      { name: 'Your Equipments', href: '/dashboard/equipment', icon: <HandymanIcon fontSize="small" /> },
       { name: 'Add Equipment', href: '/dashboard/equipment/add', icon: <AddCircleIcon fontSize="small" /> },
-      { name: 'Notification', href: '/dashboard/notifications', icon: <CheckCircleIcon fontSize="small" /> },
+      { name: 'Add Non-Availability', href: '/dashboard/non-availability', icon: <AddCircleIcon fontSize="small" /> },
+      { name: 'Maintenance Alerts', href: '/dashboard/maintenance', icon: <MiscellaneousServicesIcon fontSize="small" /> },
+      { name: 'Notifications', href: '/dashboard/notifications', icon: <NotificationsIcon fontSize="small" /> },
     ],
     ROLE_SITE_SUPERVISOR: [
       { name: 'Assigned Projects', href: '/dashboard/assigned-projects-sitesup', icon: <AssignmentIcon fontSize="small" /> },
-      { name: 'Notification', href: '/dashboard/notifications', icon: <CheckCircleIcon fontSize="small" /> },
+      { name: 'Notifications', href: '/dashboard/notifications', icon: <NotificationsIcon fontSize="small" /> },
     ],
   }
 

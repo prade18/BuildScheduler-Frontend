@@ -1,8 +1,8 @@
-//app/dashboard/equipment-assigned-projects/[projectId]/page.js
 'use client'; // This is a Client Component as it uses useState, useEffect, useParams, useRouter
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import axios from 'axios';
 
 export default function AssignedProjectDetailsPage() {
   const router = useRouter();
@@ -12,11 +12,6 @@ export default function AssignedProjectDetailsPage() {
   const [mainTasks, setMainTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', content: '' });
-
-  // State for Main Tasks Pagination
-  const [currentPage, setCurrentPage] = useState(0); // Backend uses 0-indexed pages
-  const [totalPages, setTotalPages] = useState(0);
-  const [pageSize] = useState(10); // Fixed page size as per requirement
 
   useEffect(() => {
     // Ensure projectId is available from the URL parameters
@@ -28,34 +23,28 @@ export default function AssignedProjectDetailsPage() {
 
     const fetchProjectData = async () => {
       try {
-        setLoading(true); // Start loading indicator for the whole page
-        const token = localStorage.getItem('token');
-        const accessToken = localStorage.getItem('accessToken'); // Assuming accessToken might also be used
+        setLoading(true); // Start loading indicator
+        setMessage({ type: '', content: '' }); // Clear any previous messages
 
-        if (!token && !accessToken) {
+        const accessToken = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('token');
+
+        if (!accessToken && !token) {
           router.push('/login'); // Redirect to login if no token is found
           return;
         }
-
-        // --- Fetch Project Structure ---
-        const projectRes = await fetch(`http://localhost:8080/api/pm/projects/${projectId}/structure`, {
+        
+        const response = await axios.get(`http://localhost:8080/api/pm/projects/${projectId}/structure`, {
           headers: { Authorization: `Bearer ${accessToken || token}` }
         });
 
-        if (!projectRes.ok) {
-          const errorData = await projectRes.json();
-          throw new Error(errorData.message || `Failed to fetch project details (Status: ${projectRes.status})`);
-        }
-        const projectData = await projectRes.json();
-
-        if (projectData.success) {
-          setProject(projectData.data.project); // Assuming 'data.project' holds the project object
+        if (response.data.success) {
+          const { project, mainTasks } = response.data.data;
+          setProject(project);
+          setMainTasks(mainTasks);
         } else {
-          throw new Error(projectData.message || 'Failed to fetch project details. Unknown error.');
+          throw new Error(response.data.message || 'Failed to fetch project details.');
         }
-
-        // --- Initial Fetch of Main Tasks with Pagination ---
-        await fetchMainTasks(accessToken || token, currentPage, pageSize);
 
       } catch (error) {
         console.error("Fetch error in AssignedProjectDetailsPage:", error);
@@ -66,46 +55,7 @@ export default function AssignedProjectDetailsPage() {
     };
 
     fetchProjectData();
-  }, [projectId, router]); // Dependency array: re-run effect if projectId or router changes
-
-  // Function to fetch main tasks with pagination (can be called separately for pagination changes)
-  const fetchMainTasks = async (token, page, size) => {
-    try {
-      const tasksRes = await fetch(`http://localhost:8080/api/pm/projects/${projectId}/main-tasks?page=${page}&size=${size}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!tasksRes.ok) {
-        const errorData = await tasksRes.json();
-        throw new Error(errorData.message || `Failed to fetch main tasks (Status: ${tasksRes.status})`);
-      }
-      const tasksData = await tasksRes.json();
-
-      if (tasksData.success) {
-        setMainTasks(tasksData.data.content); // Assuming 'content' holds the array of tasks
-        setTotalPages(tasksData.data.totalPages);
-        setCurrentPage(tasksData.data.number); // Update current page based on backend response
-      } else {
-        throw new Error(tasksData.message || 'Failed to fetch main tasks. Unknown error.');
-      }
-    } catch (error) {
-      console.error("Fetch main tasks error:", error);
-      setMessage({ type: 'error', content: error.message || 'An unexpected error occurred while fetching tasks.' });
-    }
-  };
-
-  // Handler for changing pagination page for main tasks
-  const handlePageChange = (newPage) => {
-    if (newPage >= 0 && newPage < totalPages) {
-      const token = localStorage.getItem('token');
-      const accessToken = localStorage.getItem('accessToken');
-      if (token || accessToken) {
-        fetchMainTasks(accessToken || token, newPage, pageSize);
-      } else {
-        router.push('/login'); // Ensure user is logged in for pagination
-      }
-    }
-  };
+  }, [projectId, router]);
 
   // Function to redirect to the subtasks page for a specific main task
   const handleSubtaskRedirect = (mainTaskId) => {
@@ -172,10 +122,11 @@ export default function AssignedProjectDetailsPage() {
                   </span>
               } />
               <DetailItem label="Priority" value={project.priority} />
+              <DetailItem label="Project Manager" value={project.projectManager?.username || '-'} />
+              <DetailItem label="Site Supervisor" value={project.siteSupervisor?.username || '-'} />
+              <DetailItem label="Equipment Manager" value={project.equipmentManager?.username || '-'} />
               <DetailItem label="Planned Start" value={project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'} />
               <DetailItem label="Planned End" value={project.endDate ? new Date(project.endDate).toLocaleDateString() : '-'} />
-              <DetailItem label="Actual Start" value={project.actualStartDate ? new Date(project.actualStartDate).toLocaleDateString() : '-'} />
-              <DetailItem label="Actual End" value={project.actualEndDate ? new Date(project.actualEndDate).toLocaleDateString() : '-'} />
               <DetailItem label="Estimated Budget" value={project.estimatedBudget != null ? `₹${project.estimatedBudget.toLocaleString('en-IN')}` : '-'} />
               <DetailItem label="Actual Budget" value={project.actualBudget != null ? `₹${project.actualBudget.toLocaleString('en-IN')}` : '-'} />
               <DetailItem label="Location" value={project.location || '-'} />
@@ -183,7 +134,7 @@ export default function AssignedProjectDetailsPage() {
                 <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                     project.overdue ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                 }`}>
-                    {project.overdue ? 'Yes' : 'No'}
+                  {project.overdue ? 'Yes' : 'No'}
                 </span>
               } />
               <div className="sm:col-span-2 lg:col-span-3">
@@ -246,12 +197,14 @@ export default function AssignedProjectDetailsPage() {
                                     task.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
                                     task.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
                                     task.status === 'PLANNING' ? 'bg-blue-100 text-blue-800' :
+                                    task.status === 'PLANNED' ? 'bg-gray-100 text-gray-800' :
                                     'bg-gray-100 text-gray-800'
                                 }`}>
                                     {task.status.replace(/_/g, ' ')}
                                 </span>
                             } isBadge={true} />
                             <DetailItem label="Supervisor" value={task.supervisorName || '-'} />
+                            <DetailItem label="Equipment Manager" value={task.equipmentManagerName || '-'} />
                             <DetailItem label="Est. Hours" value={`${task.estimatedHours}h`} />
                             <DetailItem label="Planned Start" value={task.plannedStartDate ? new Date(task.plannedStartDate).toLocaleDateString() : '-'} />
                             <DetailItem label="Planned End" value={task.plannedEndDate ? new Date(task.plannedEndDate).toLocaleDateString() : '-'} />
@@ -282,29 +235,7 @@ export default function AssignedProjectDetailsPage() {
                   ))}
               </div>
           )}
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center space-x-4 mt-8">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 0}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              <span className="text-gray-700 font-medium">
-                Page {currentPage + 1} of {totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages - 1}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
+          {/* Pagination is no longer needed since all main tasks are returned at once */}
         </div>
       </div>
     </div>

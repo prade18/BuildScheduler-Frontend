@@ -1,11 +1,11 @@
-// SubtasksPage.jsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import CreateSubtaskForm from '../../../../../../../components/CreateSubtaskForm';
-import AssignWorkerModal from '../../../../../../../components/AssignWorkerModal'; // ✅ Import new component
+import AssignWorkerModal from '../../../../../../../components/AssignWorkerModal';
 import { format, parseISO } from 'date-fns';
+import { FaTimesCircle } from 'react-icons/fa';
 
 // Reusable DetailItem Component
 const DetailItem = ({ label, value, className = '' }) => (
@@ -223,13 +223,11 @@ export default function SubtasksPage() {
   };
 
   const handleRemoveEditSkill = (id) => {
-    setSelectedEditSkillObjects((prev) =>
-      prev.filter((s) => {
-        if (s.id !== id) return true;
-        setEditFormData((f) => ({ ...f, requiredSkills: f.requiredSkills.filter((n) => n !== s.name) }));
-        return false;
-      })
-    );
+    setSelectedEditSkillObjects((prev) => {
+      const newSelected = prev.filter((s) => s.id !== id);
+      setEditFormData((f) => ({ ...f, requiredSkills: newSelected.map(s => s.name) }));
+      return newSelected;
+    });
   };
 
   // --- Equipment Handling ---
@@ -254,13 +252,11 @@ export default function SubtasksPage() {
   };
 
   const handleRemoveEditEquipment = (id) => {
-    setSelectedEditEquipmentObjects((prev) =>
-      prev.filter((eq) => {
-        if (eq.id !== id) return true;
-        setEditFormData((f) => ({ ...f, equipmentIds: f.equipmentIds.filter((eid) => eid !== id) }));
-        return false;
-      })
-    );
+    setSelectedEditEquipmentObjects((prev) => {
+        const newSelected = prev.filter((eq) => eq.id !== id);
+        setEditFormData((f) => ({ ...f, equipmentIds: newSelected.map(eq => eq.id) }));
+        return newSelected;
+    });
   };
 
   const handleUpdateSubtask = async (e) => {
@@ -270,7 +266,7 @@ export default function SubtasksPage() {
       const token = localStorage.getItem('token');
       if (!token) return router.push('/login');
 
-      const payload = { ...editFormData, equipmentIds: editFormData.equipmentIds };
+      const payload = { ...editFormData };
       const res = await fetch(`http://localhost:8080/api/site-supervisor/subtasks/${editingSubtaskId}`, {
         method: 'PUT',
         headers: {
@@ -454,24 +450,150 @@ export default function SubtasksPage() {
                         rows="2"
                         className="w-full border border-gray-300 rounded p-2"
                       />
-                      <div className="grid grid-cols-2 gap-4">
-                        <input
-                          name="plannedStart"
-                          type="datetime-local"
-                          value={editFormData.plannedStart || ''}
-                          onChange={handleEditFormChange}
-                          className="border border-gray-300 rounded p-2"
-                          required
-                        />
-                        <input
-                          name="plannedEnd"
-                          type="datetime-local"
-                          value={editFormData.plannedEnd || ''}
-                          onChange={handleEditFormChange}
-                          className="border border-gray-300 rounded p-2"
-                          required
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label className="block">
+                          <span className="text-gray-700">Planned Start:</span>
+                          <input
+                            name="plannedStart"
+                            type="datetime-local"
+                            value={editFormData.plannedStart || ''}
+                            onChange={handleEditFormChange}
+                            className="mt-1 w-full border border-gray-300 rounded p-2"
+                            required
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-gray-700">Planned End:</span>
+                          <input
+                            name="plannedEnd"
+                            type="datetime-local"
+                            value={editFormData.plannedEnd || ''}
+                            onChange={handleEditFormChange}
+                            className="mt-1 w-full border border-gray-300 rounded p-2"
+                            required
+                          />
+                        </label>
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label className="block">
+                          <span className="text-gray-700">Estimated Hours:</span>
+                          <input
+                            name="estimatedHours"
+                            type="number"
+                            value={editFormData.estimatedHours || 0}
+                            onChange={handleEditFormChange}
+                            className="mt-1 w-full border border-gray-300 rounded p-2"
+                            required
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-gray-700">Required Workers:</span>
+                          <input
+                            name="requiredWorkers"
+                            type="number"
+                            value={editFormData.requiredWorkers || 0}
+                            onChange={handleEditFormChange}
+                            className="mt-1 w-full border border-gray-300 rounded p-2"
+                            required
+                          />
+                        </label>
+                      </div>
+                      
+                      {/* START: SKILLS AND EQUIPMENT EDIT UI */}
+                      {/* Required Skills */}
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Required Skills</label>
+                        <div className="relative" ref={editSkillsSuggestionsRef}>
+                          <input
+                            type="text"
+                            value={editSkillSearchTerm}
+                            onChange={handleEditSkillSearchChange}
+                            placeholder="Search for skills..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                          {filteredEditSkills.length > 0 && (
+                            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
+                              {filteredEditSkills.map((skill) => (
+                                <li
+                                  key={skill.id}
+                                  onClick={() => handleEditSkillSelect(skill)}
+                                  className="px-4 py-2 cursor-pointer hover:bg-indigo-50 text-gray-800"
+                                >
+                                  {skill.name}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {selectedEditSkillObjects.map((skill) => (
+                            <span
+                              key={skill.id}
+                              className="inline-flex items-center px-3 py-1 text-sm font-medium text-indigo-700 bg-indigo-100 rounded-full"
+                            >
+                              {skill.name}
+                              <FaTimesCircle
+                                className="ml-2 cursor-pointer text-indigo-500 hover:text-indigo-700"
+                                onClick={() => handleRemoveEditSkill(skill.id)}
+                              />
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Equipment Needed */}
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Equipment Needed</label>
+                        <div className="relative" ref={editEquipmentSuggestionsRef}>
+                          <input
+                            type="text"
+                            value={editEquipmentSearchTerm}
+                            onChange={handleEditEquipmentSearchChange}
+                            placeholder="Search for equipment..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                          {filteredEditEquipment.length > 0 && (
+                            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
+                              {filteredEditEquipment.map((eq) => (
+                                <li
+                                  key={eq.id}
+                                  onClick={() => handleEditEquipmentSelect(eq)}
+                                  className="px-4 py-2 cursor-pointer hover:bg-indigo-50 text-gray-800"
+                                >
+                                  {eq.name} ({eq.model})
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {selectedEditEquipmentObjects.map((eq) => (
+                            <span
+                              key={eq.id}
+                              className="inline-flex items-center px-3 py-1 text-sm font-medium text-purple-700 bg-purple-100 rounded-full"
+                            >
+                              {eq.name} ({eq.model})
+                              <FaTimesCircle
+                                className="ml-2 cursor-pointer text-purple-500 hover:text-purple-700"
+                                onClick={() => handleRemoveEditEquipment(eq.id)}
+                              />
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <label className="block mt-4">
+                        <span className="text-gray-700">Equipment Request Notes:</span>
+                        <textarea
+                          name="equipmentRequestNotes"
+                          value={editFormData.equipmentRequestNotes || ''}
+                          onChange={handleEditFormChange}
+                          rows="2"
+                          className="mt-1 w-full border border-gray-300 rounded p-2"
+                        />
+                      </label>
+                      {/* END: SKILLS AND EQUIPMENT EDIT UI */}
+                      
                       <div className="flex justify-end space-x-3 mt-4">
                         <button
                           type="button"
@@ -545,16 +667,40 @@ export default function SubtasksPage() {
                         </div>
                       )}
 
-                      {/* 🔹 Equipment */}
+                      {/* 🔹 Equipment Needed (Requested) */}
                       {subtask.equipmentNeeds?.length > 0 && (
                         <div className="mt-5 p-4 bg-purple-50 border border-purple-200 rounded-xl">
                           <h4 className="font-bold text-purple-800 flex items-center text-sm mb-2">
-                            🛠️ Equipment Needed
+                            🛠️ Equipment Requested
                           </h4>
                           <ul className="space-y-1">
                             {subtask.equipmentNeeds.map((eq) => (
                               <li key={eq.id} className="text-sm">
                                 <strong>{eq.name}</strong> ({eq.model})
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* 🔹 Equipment Assigned (New Section) */}
+                      {subtask.equipmentAssignments?.length > 0 && (
+                        <div className="mt-5 p-4 bg-teal-50 border border-teal-200 rounded-xl">
+                          <h4 className="font-bold text-teal-800 flex items-center text-sm mb-3">
+                            🚚 Equipment Assigned
+                          </h4>
+                          <ul className="space-y-2">
+                            {subtask.equipmentAssignments.map((assignment) => (
+                              <li
+                                key={assignment.id}
+                                className="bg-white text-sm p-3 rounded-md shadow-sm border border-teal-200"
+                              >
+                                <div>
+                                  <strong>{assignment.equipment.name}</strong> ({assignment.equipment.model})
+                                  <span className="text-xs text-gray-500 block mt-1">
+                                    Assigned by: {assignment.assignedBy.username}
+                                  </span>
+                                </div>
                               </li>
                             ))}
                           </ul>

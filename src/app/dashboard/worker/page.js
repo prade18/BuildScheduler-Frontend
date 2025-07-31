@@ -1,468 +1,380 @@
-// // src/app/dashboard/worker/page.js
-// 'use client';
-
-// import { useEffect, useRef } from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { fetchUserProfile } from '../../../redux/authSlice';
-// import { useRouter } from 'next/navigation';
-
-// export default function WorkerDashboardPage() {
-//   const dispatch = useDispatch();
-//   const router = useRouter();
-
-//   const { data: userProfile, loading, error } = useSelector((state) => state.auth.userProfile);
-
-//   const hasFetched = useRef(false);
-
-//   useEffect(() => {
-//     if (!userProfile && !loading && !hasFetched.current) {
-//       dispatch(fetchUserProfile());
-//       hasFetched.current = true;
-//     }
-//   }, [dispatch, userProfile, loading]);
-
-//   const rawRoleName = userProfile?.roles?.[0]?.name || '';
-//   const roleToDisplay = rawRoleName.replace('ROLE_', '').replace(/_/g, ' ');
-
-//   // Authorization check for Worker role
-//   useEffect(() => {
-//     const expectedRole = 'ROLE_WORKER';
-
-//     if (userProfile && rawRoleName !== expectedRole) {
-//       console.warn(`Unauthorized access attempt to Worker Dashboard by role: ${rawRoleName}. Redirecting.`);
-//       router.replace('/dashboard');
-//     } else if (error && typeof error === 'string' && error.includes('No authentication token found')) {
-//       router.replace('/login');
-//     }
-//   }, [userProfile, rawRoleName, error, router]);
-
-//   // --- Loading and Error States ---
-//   if (loading || !userProfile) {
-//     return (
-//       <div className="flex justify-center items-center h-screen bg-gray-100">
-//         <p className="text-xl font-semibold text-indigo-600 animate-pulse">Loading Worker Dashboard...</p>
-//       </div>
-//     );
-//   }
-
-//   if (error) {
-//     return (
-//       <div className="flex justify-center items-center h-screen bg-red-100">
-//         <p className="text-xl font-semibold text-red-700">Error: {error}</p>
-//       </div>
-//     );
-//   }
-
-//   // Helper function to format profile values (reused)
-//   const formatProfileValue = (key, value) => {
-//     if (value === null || value === undefined || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0 && !['roles'].includes(key))) {
-//       return '-';
-//     }
-//     if (key === 'roles' && Array.isArray(value)) {
-//       return value.map(role => (role && role.name ? role.name.replace('ROLE_', '').replace(/_/g, ' ') : 'Unknown Role')).join(', ');
-//     }
-//     if (Array.isArray(value)) {
-//       return value.map(item => {
-//           if (item && typeof item === 'object') {
-//             return item.username || item.name || item.title || `ID: ${item.id || 'Unknown'}`;
-//           }
-//           return String(item);
-//         }).join(', ');
-//     }
-//     if (typeof value === 'object') {
-//       return value.username || value.email || value.name || `ID: ${value.id || 'Unknown Object'}`;
-//     }
-//     return String(value);
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-6 md:p-10">
-//       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10">
-//         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight">
-//           Welcome, {userProfile.username || roleToDisplay}!
-//         </h1>
-//         <p className="text-lg text-gray-700 mb-8 leading-relaxed">
-//           This is your dedicated dashboard for Worker Assignments, showing all your profile details.
-//         </p>
-
-//         {/* --- All Worker Profile Data (Dynamically rendered from all JSON keys) --- */}
-//         <section className="mb-8">
-//           <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Your Complete Profile Overview</h2>
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-base text-gray-700">
-//             {Object.keys(userProfile).map((key) => {
-//               if (['data', 'loading', 'error'].includes(key)) {
-//                 return null;
-//               }
-
-//               const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-//               const value = formatProfileValue(key, userProfile[key]);
-
-//               return <DetailItem key={key} label={label} value={value} />;
-//             })}
-//           </div>
-//         </section>
-
-//       </div>
-//     </div>
-//   );
-// }
-
-// // Helper component for displaying individual detail items (reused)
-// function DetailItem({ label, value }) {
-//   return (
-//     <div>
-//       <h3 className="font-semibold text-gray-600 text-sm mb-1">{label}:</h3>
-//       <p className="font-medium text-gray-800">{value}</p>
-//     </div>
-//   );
-// }
-
-// 'use client';
-
-// import { useEffect, useRef } from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { fetchUserProfile } from '../../../redux/authSlice';
-// import { useRouter } from 'next/navigation';
-// import { format } from 'date-fns'; // Import date-fns for consistent date formatting
-
-// export default function WorkerDashboardPage() {
-//     const dispatch = useDispatch();
-//     const router = useRouter();
-
-//     const { data: userProfile, loading, error } = useSelector((state) => state.auth.userProfile);
-
-//     const hasFetched = useRef(false);
-
-//     useEffect(() => {
-//         // Only fetch if userProfile is not loaded, not currently loading, and hasn't been fetched before
-//         if (!userProfile && !loading && !hasFetched.current) {
-//             dispatch(fetchUserProfile());
-//             hasFetched.current = true; // Mark as fetched to prevent redundant calls
-//         }
-//     }, [dispatch, userProfile, loading]); // Dependencies for useEffect
-
-//     const rawRoleName = userProfile?.roles?.[0]?.name || '';
-//     const roleToDisplay = rawRoleName.replace('ROLE_', '').replace(/_/g, ' ');
-
-//     // Authorization check for Worker role
-//     useEffect(() => {
-//         const expectedRole = 'ROLE_WORKER';
-
-//         if (userProfile) {
-//             if (rawRoleName !== expectedRole) {
-//                 console.warn(`Unauthorized access attempt to Worker Dashboard by role: ${rawRoleName}. Redirecting.`);
-//                 router.replace('/dashboard'); // Redirect if not the expected role
-//             }
-//         } else if (error && typeof error === 'string' && error.includes('No authentication token found')) {
-//             router.replace('/login'); // Redirect to login if token is missing
-//         }
-//     }, [userProfile, rawRoleName, error, router]); // Dependencies for authorization check
-
-//     // --- Loading and Error States ---
-//     if (loading || !userProfile) {
-//         return (
-//             <div className="flex justify-center items-center h-screen bg-gray-50">
-//                 <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-lg">
-//                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
-//                     <p className="text-xl font-semibold text-purple-700">Loading Worker Dashboard...</p>
-//                 </div>
-//             </div>
-//         );
-//     }
-
-//     if (error) {
-//         return (
-//             <div className="flex justify-center items-center h-screen bg-red-50">
-//                 <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-lg">
-//                     <p className="text-xl font-semibold text-red-700">Error: {error}</p>
-//                     <button
-//                         onClick={() => router.replace('/dashboard')}
-//                         className="mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
-//                     >
-//                         Go to Dashboard
-//                     </button>
-//                 </div>
-//             </div>
-//         );
-//     }
-
-//     // Helper function to format profile values
-//     const formatProfileValue = (key, value) => {
-//         // Exclude internal state properties or specific complex objects
-//         if (['data', 'loading', 'error'].includes(key)) {
-//             return null; // Return null to indicate this key should be skipped in general display
-//         }
-//         if (value === null || value === undefined || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0 && !['roles'].includes(key))) {
-//             return '-'; // Display '-' for empty/null values
-//         }
-//         if (key === 'roles' && Array.isArray(value)) {
-//             // Format role names for display
-//             return value.map(role => (role && role.name ? role.name.replace('ROLE_', '').replace(/_/g, ' ') : 'Unknown Role')).join(', ');
-//         }
-//         if (Array.isArray(value)) {
-//             // Handle arrays of objects or primitives
-//             return value.map(item => {
-//                 if (item && typeof item === 'object') {
-//                     return item.username || item.name || item.title || `ID: ${item.id || 'Unknown'}`;
-//                 }
-//                 return String(item);
-//             }).join(', ');
-//         }
-//         if (typeof value === 'object') {
-//             // Handle single nested objects
-//             return value.username || value.email || value.name || `ID: ${value.id || 'Unknown Object'}`;
-//         }
-//         // Format dates if they look like date strings
-//         if (typeof value === 'string' && (value.includes('T') || (value.includes('-') && value.split('-').length === 3))) {
-//             try {
-//                 const date = new Date(value);
-//                 if (!isNaN(date)) {
-//                     return format(date, 'MMM dd, yyyy'); // Format as "Jan 01, 2025"
-//                 }
-//             } catch (e) {
-//                 // Fallback if date parsing fails
-//             }
-//         }
-//         return String(value);
-//     };
-
-//     // Helper component for displaying individual detail items
-//     function DetailItem({ label, value }) {
-//         if (value === null) return null; // Don't render if formatProfileValue returned null (for excluded keys)
-//         return (
-//             <div className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
-//                 <h3 className="font-semibold text-gray-600 text-sm mb-1">{label}:</h3>
-//                 <p className="font-medium text-gray-800 break-words">{value}</p>
-//             </div>
-//         );
-//     }
-
-//     return (
-//         <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-6 md:p-10 font-inter">
-//             <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10 border border-gray-100">
-//                 <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight text-center">
-//                     Welcome, <span className="text-purple-600">{userProfile.username || roleToDisplay}</span>!
-//                 </h1>
-//                 <p className="text-lg text-gray-700 mb-8 leading-relaxed text-center">
-//                     This is your dedicated dashboard as a Worker, showing all your profile details.
-//                 </p>
-
-//                 {/* --- Worker Profile Data (Dynamically rendered) --- */}
-//                 <section className="mb-10 p-6 bg-purple-50 rounded-lg shadow-inner border border-purple-100">
-//                     <h2 className="text-2xl font-bold text-gray-800 mb-5 border-b-2 border-purple-200 pb-3">Your Complete Profile Overview</h2>
-//                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 text-base text-gray-700">
-//                         {Object.keys(userProfile).map((key) => {
-//                             const value = formatProfileValue(key, userProfile[key]);
-//                             if (value === null) return null; // Skip excluded keys
-
-//                             const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-
-//                             return <DetailItem key={key} label={label} value={value} />;
-//                         })}
-//                     </div>
-//                 </section>
-
-//                 {/* Potentially add a section for "My Assigned Tasks" here later if needed */}
-//                 { <section>
-//                     <h2 className="text-2xl font-bold text-gray-800 mb-5 border-b-2 border-green-200 pb-3">My Assigned Tasks</h2>
-//                     <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
-//                         <p className="text-gray-600 text-lg">No tasks currently assigned to you.</p>
-//                         <p className="text-gray-500 text-sm mt-2">Check back later for new assignments!</p>
-//                     </div>
-//                 </section> }
-
-//             </div>
-//         </div>
-//     );
-// }
-
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchUserProfile } from '../../../redux/authSlice';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns'; // Import date-fns for consistent date formatting
+import axios from 'axios';
+import { format, parseISO, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import {
+  FaUserCircle,
+  FaProjectDiagram,
+  FaCalendarCheck,
+  FaTools,
+  FaCertificate,
+  FaUserTie,
+  FaPhone,
+  FaEnvelope,
+  FaClock,
+  FaCalendarAlt,
+  FaExclamationCircle,
+} from 'react-icons/fa';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
 
-export default function WorkerDashboardPage() {
-    const dispatch = useDispatch();
-    const router = useRouter();
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
-    const { data: userProfile, loading, error } = useSelector((state) => state.auth.userProfile);
+// --- Reusable Components ---
+// Reusable Circular Progress component
+const CircularProgress = ({ percentage }) => {
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-    const hasFetched = useRef(false);
+  return (
+    <div className="relative w-28 h-28">
+      <svg className="w-full h-full transform -rotate-90">
+        <circle
+          className="text-gray-200"
+          strokeWidth="8"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="60"
+          cy="60"
+        />
+        <circle
+          className="text-indigo-500"
+          strokeWidth="8"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="60"
+          cy="60"
+          style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+        />
+      </svg>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+        <span className="text-xl font-bold text-gray-800">{percentage}%</span>
+      </div>
+    </div>
+  );
+};
 
-    useEffect(() => {
-        // Only fetch if userProfile is not loaded, not currently loading, and hasn't been fetched before
-        if (!userProfile && !loading && !hasFetched.current) {
-            dispatch(fetchUserProfile());
-            hasFetched.current = true; // Mark as fetched to prevent redundant calls
+// Reusable DetailItem component
+const DetailItem = ({ icon, label, value }) => (
+  <div className="flex items-center text-sm text-gray-700">
+    <div className="flex items-center justify-center w-6 h-6 mr-2 text-indigo-500 rounded-full bg-indigo-50">
+      {icon}
+    </div>
+    <span className="font-medium mr-1.5">{label}:</span>
+    <p>{value || '-'}</p>
+  </div>
+);
+
+// --- Main Dashboard Component ---
+export default function WorkerDashboard() {
+  const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Chart data state
+  const [chartData, setChartData] = useState({ labels: [], datasets: [] });
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: 'Upcoming Tasks This Week', font: { size: 16, weight: 'bold' } },
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, max: 10, ticks: { precision: 0 } },
+    },
+  };
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/login');
+          return;
         }
-    }, [dispatch, userProfile, loading]); // Dependencies for useEffect
+        const headers = { Authorization: `Bearer ${token}` };
+        const [profileRes, projectsRes, assignmentsRes] = await Promise.all([
+          axios.get('http://localhost:8080/api/user/my-profile', { headers }),
+          axios.get('http://localhost:8080/api/worker/profile/projects', { headers }),
+          axios.get('http://localhost:8080/api/worker/profile/assignments', { headers }),
+        ]);
 
-    const rawRoleName = userProfile?.roles?.[0]?.name || '';
-    const roleToDisplay = rawRoleName.replace('ROLE_', '').replace(/_/g, ' ');
+        if (profileRes.data.success && projectsRes.data.success && assignmentsRes.data.success) {
+          setProfile(profileRes.data.data);
+          setProjects(projectsRes.data.data);
+          setAssignments(assignmentsRes.data.data);
 
-    // Authorization check for Worker role
-    useEffect(() => {
-        const expectedRole = 'ROLE_WORKER';
+          // Process data for the bar chart
+          const today = new Date();
+          const start = startOfWeek(today, { weekStartsOn: 1 });
+          const end = endOfWeek(today, { weekStartsOn: 1 });
+          const daysOfWeek = eachDayOfInterval({ start, end });
+          const labels = daysOfWeek.map((day) => format(day, 'EEE d'));
 
-        if (userProfile) {
-            if (rawRoleName !== expectedRole) {
-                console.warn(`Unauthorized access attempt to Worker Dashboard by role: ${rawRoleName}. Redirecting.`);
-                router.replace('/dashboard'); // Redirect if not the expected role
+          const taskCounts = new Array(7).fill(0);
+          assignmentsRes.data.data.forEach((assignment) => {
+            const assignmentDate = parseISO(assignment.assignmentStart);
+            if (assignmentDate >= start && assignmentDate <= end) {
+              const dayIndex = daysOfWeek.findIndex((day) => format(day, 'd') === format(assignmentDate, 'd'));
+              if (dayIndex !== -1) {
+                taskCounts[dayIndex] += 1;
+              }
             }
-        } else if (error && typeof error === 'string' && error.includes('No authentication token found')) {
-            router.replace('/login'); // Redirect to login if token is missing
-        }
-    }, [userProfile, rawRoleName, error, router]); // Dependencies for authorization check
+          });
 
-    // --- Loading and Error States ---
-    if (loading || !userProfile) {
-        return (
-            <div className="flex justify-center items-center h-screen bg-gray-50">
-                <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-lg">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
-                    <p className="text-xl font-semibold text-purple-700">Loading Worker Dashboard...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="flex justify-center items-center h-screen bg-red-50">
-                <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-lg">
-                    <p className="text-xl font-semibold text-red-700">Error: {error}</p>
-                    <button
-                        onClick={() => router.replace('/dashboard')}
-                        className="mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
-                    >
-                        Go to Dashboard
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    // Helper function to format profile values
-    const formatProfileValue = (key, value) => {
-        // Exclude internal state properties or specific complex objects that will be displayed separately
-        if (['data', 'loading', 'error', 'workerAssignments', 'managedTeam', 'managedProjects', 'supervisedWorkers', 'supervisedTasks', 'managedEquipment'].includes(key)) {
-            return null; // Return null to indicate this key should be skipped in general display
+          setChartData({
+            labels,
+            datasets: [
+              {
+                label: 'Tasks',
+                data: taskCounts,
+                backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                borderColor: 'rgba(99, 102, 241, 1)',
+                borderWidth: 1,
+              },
+            ],
+          });
+        } else {
+          throw new Error('Failed to fetch dashboard data.');
         }
-        if (value === null || value === undefined || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0 && !['roles'].includes(key))) {
-            return '-'; // Display '-' for empty/null values
+      } catch (err) {
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          router.push('/login');
         }
-        if (key === 'roles' && Array.isArray(value)) {
-            // Format role names for display
-            return value.map(role => (role && role.name ? role.name.replace('ROLE_', '').replace(/_/g, ' ') : 'Unknown Role')).join(', ');
-        }
-        if (key === 'skills' && Array.isArray(value)) {
-            return value.join(', '); // Join skills with a comma
-        }
-        if (key === 'worksUnder' && Array.isArray(value)) {
-            return value.map(person => person.username || person.email || `ID: ${person.id}`).join(', ');
-        }
-        if (typeof value === 'object') {
-            // Handle single nested objects (like siteSupervisor or projectManager)
-            return value.username || value.email || value.name || `ID: ${value.id || 'Unknown Object'}`;
-        }
-        // Format dates if they look like date strings
-        if (typeof value === 'string' && (value.includes('T') || (value.includes('-') && value.split('-').length === 3))) {
-            try {
-                const date = new Date(value);
-                if (!isNaN(date)) {
-                    return format(date, 'MMM dd, yyyy'); // Format as "Jan 01, 2025"
-                }
-            } catch (e) {
-                // Fallback if date parsing fails
-            }
-        }
-        return String(value);
+        setError(err.response?.data?.message || err.message || 'An error occurred while fetching data.');
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchDashboardData();
+  }, [router]);
 
-    // Helper component for displaying individual detail items
-    function DetailItem({ label, value }) {
-        if (value === null) return null; // Don't render if formatProfileValue returned null (for excluded keys)
-        return (
-            <div className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
-                <h3 className="font-semibold text-gray-600 text-sm mb-1">{label}:</h3>
-                <p className="font-medium text-gray-800 break-words">{value}</p>
-            </div>
-        );
-    }
-
+  if (loading) {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-6 md:p-10 font-inter">
-            <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10 border border-gray-100">
-                <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight text-center">
-                    Welcome, <span className="text-purple-600">{userProfile.username || roleToDisplay}</span>!
-                </h1>
-                <p className="text-lg text-gray-700 mb-8 leading-relaxed text-center">
-                    This is your dedicated dashboard as a Worker, showing all your profile details and assigned tasks.
-                </p>
-
-                {/* --- Worker Profile Data (Dynamically rendered) --- */}
-                <section className="mb-10 p-6 bg-purple-50 rounded-lg shadow-inner border border-purple-100">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-5 border-b-2 border-purple-200 pb-3">Your Complete Profile Overview</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 text-base text-gray-700">
-                        {Object.keys(userProfile).map((key) => {
-                            const value = formatProfileValue(key, userProfile[key]);
-                            if (value === null) return null; // Skip excluded keys
-
-                            const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-
-                            return <DetailItem key={key} label={label} value={value} />;
-                        })}
-                    </div>
-                </section>
-
-                {/* --- Worker Specific: Worker Assignments Table --- */}
-                <section>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-5 border-b-2 border-green-200 pb-3">Your Assigned Tasks</h2>
-                    {userProfile.workerAssignments && userProfile.workerAssignments.length > 0 ? (
-                        <div className="overflow-x-auto rounded-lg shadow-lg border border-gray-200">
-                            <table className="min-w-full bg-white">
-                                <thead>
-                                    <tr className="bg-gradient-to-r from-gray-50 to-gray-100 text-left text-gray-700 uppercase text-sm leading-normal">
-                                        <th className="py-3 px-6 text-left font-bold">Assignment ID</th>
-                                        <th className="py-3 px-6 text-left font-bold">Assigned By</th>
-                                        <th className="py-3 px-6 text-left font-bold">Start Time</th>
-                                        <th className="py-3 px-6 text-left font-bold">End Time</th>
-                                        <th className="py-3 px-6 text-left font-bold">Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-gray-700 text-sm font-light divide-y divide-gray-200">
-                                    {userProfile.workerAssignments.map((assignment) => (
-                                        <tr key={assignment.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200">
-                                            <td className="py-3 px-6 text-left whitespace-nowrap font-medium text-indigo-700">{assignment.id}</td>
-                                            <td className="py-3 px-6 text-left">
-                                                {assignment.assignedBy?.username || assignment.assignedBy?.email || 'N/A'}
-                                            </td>
-                                            <td className="py-3 px-6 text-left">
-                                                {assignment.assignmentStart ? format(new Date(assignment.assignmentStart), 'MMM dd, yyyy HH:mm') : '-'}
-                                            </td>
-                                            <td className="py-3 px-6 text-left">
-                                                {assignment.assignmentEnd ? format(new Date(assignment.assignmentEnd), 'MMM dd, yyyy HH:mm') : '-'}
-                                            </td>
-                                            <td className="py-3 px-6 text-left">
-                                                {assignment.notes || '-'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                            <p className="text-gray-600 text-lg">No tasks currently assigned to you.</p>
-                            <p className="text-gray-500 text-sm mt-2">Check back later for new assignments!</p>
-                        </div>
-                    )}
-                </section>
-
-            </div>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mb-4"></div>
+        <p className="text-xl font-semibold text-indigo-600">Loading your dashboard...</p>
+      </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
+        <div className="bg-white p-8 rounded-xl shadow-md text-center">
+          <FaExclamationCircle className="text-red-500 text-4xl mb-4" />
+          <p className="text-xl text-red-500 font-semibold mb-4">Error: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="text-center md:text-left mb-8">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
+            Welcome, {profile?.username || 'Worker'}!
+          </h1>
+          <p className="mt-2 text-lg text-gray-600">Here's a quick look at your current assignments and projects.</p>
+        </div>
+
+        {/* --- */}
+        
+        {/* Main Grid for Profile, Projects, and Charts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          {/* Profile Card */}
+          <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl p-6 border border-gray-200 transform transition-all hover:scale-[1.01] duration-300">
+            <div className="flex items-center space-x-4 mb-4 pb-4 border-b border-gray-200">
+              <div className="text-5xl text-indigo-600">
+                <FaUserCircle />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{profile?.username}</h3>
+                <p className="text-sm text-gray-500">{profile?.roles?.[0]?.name.replace('ROLE_', '')}</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <DetailItem icon={<FaEnvelope />} label="Email" value={profile?.email} />
+              <DetailItem icon={<FaPhone />} label="Phone" value={profile?.phone} />
+              <div className="flex items-start text-sm text-gray-700">
+                <div className="flex items-center justify-center w-6 h-6 mr-2 text-indigo-500 rounded-full bg-indigo-50">
+                  <FaTools />
+                </div>
+                <span className="font-medium mr-1.5 min-w-max">Skills:</span>
+                <div className="flex flex-wrap gap-2">
+                  {profile?.skills?.length > 0 ? (
+                    profile.skills.map((skill, index) => (
+                      <span key={index} className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                        {skill}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">-</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-start text-sm text-gray-700">
+                <div className="flex items-center justify-center w-6 h-6 mr-2 text-indigo-500 rounded-full bg-indigo-50">
+                  <FaCertificate />
+                </div>
+                <span className="font-medium mr-1.5 min-w-max">Certifications:</span>
+                <div className="flex flex-wrap gap-2">
+                  {profile?.certifications?.length > 0 ? (
+                    profile.certifications.map((cert, index) => (
+                      <span key={index} className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                        {cert}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">-</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-start text-sm text-gray-700">
+                <div className="flex items-center justify-center w-6 h-6 mr-2 text-indigo-500 rounded-full bg-indigo-50">
+                  <FaUserTie />
+                </div>
+                <span className="font-medium mr-1.5 min-w-max">Managers:</span>
+                <div className="flex flex-col gap-2 w-full mt-2">
+                  {profile?.worksUnder?.length > 0 ? (
+                    profile.worksUnder.map((manager, index) => (
+                      <div key={index} className="bg-gray-100 p-2 rounded-md shadow-sm border border-gray-200">
+                        <p className="font-semibold text-gray-900">{manager.username}</p>
+                        <p className="text-xs text-gray-600">{manager.email}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {manager.roles.map((role, idx) => (
+                            <span key={idx} className="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                              {role.replace('ROLE_', '')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">-</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bar Chart for Weekly Tasks */}
+          <div className="md:col-span-2 bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+              <FaCalendarCheck className="inline-block mr-2 text-indigo-600" />
+              Weekly Task Overview
+            </h3>
+            <Bar options={chartOptions} data={chartData} />
+          </div>
+        </div>
+
+        {/* --- */}
+
+        {/* Projects and Assignments Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Assigned Projects Section */}
+          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+              <FaProjectDiagram className="inline-block mr-2 text-indigo-600" />
+              Assigned Projects
+            </h3>
+            <div className="space-y-4">
+              {projects.length > 0 ? (
+                projects.map((project) => (
+                  <div
+                    key={project.id}
+                    onClick={() => router.push(`/dashboard/assignedprojectsforworker/${project.id}`)}
+                    className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors duration-200 cursor-pointer shadow-sm flex items-center justify-between"
+                  >
+                    <div>
+                      <h4 className="text-lg font-bold text-indigo-700">{project.title}</h4>
+                      <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+                    </div>
+                    <CircularProgress percentage={project.completionPercentage} />
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <p>You are not currently assigned to any projects.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Current Assignments Section */}
+          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+              <FaCalendarCheck className="inline-block mr-2 text-indigo-600" />
+              My Upcoming Assignments
+            </h3>
+            <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+              {assignments.length > 0 ? (
+                assignments.map((assignment) => (
+                  <div key={assignment.assignmentId} className="bg-indigo-50 rounded-xl p-5 border border-indigo-200 shadow-md transition-all duration-300 hover:shadow-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 rounded-full px-3 py-1">
+                        Subtask: {assignment.subtaskId}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Assigned by: {assignment.assignedByName}
+                      </span>
+                    </div>
+                    <h4 className="text-lg font-bold text-indigo-800">{assignment.subtaskTitle}</h4>
+                    <p className="text-sm text-gray-700 mt-1">{assignment.subtaskDescription}</p>
+                    <div className="mt-4 space-y-2 text-sm">
+                      <div className="flex items-center text-gray-600">
+                        <FaProjectDiagram className="mr-2 text-indigo-500" />
+                        Project: <span className="font-medium ml-1.5">{assignment.projectTitle}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <FaCalendarAlt className="mr-2 text-indigo-500" />
+                        <span className="font-medium">
+                          {format(parseISO(assignment.assignmentStart), 'dd MMM yyyy')}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <FaClock className="mr-2 text-indigo-500" />
+                        <span className="font-medium">
+                          {format(parseISO(assignment.assignmentStart), 'HH:mm')} - {format(parseISO(assignment.assignmentEnd), 'HH:mm')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-6 text-gray-500">
+                  <p>You have no current assignments.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
